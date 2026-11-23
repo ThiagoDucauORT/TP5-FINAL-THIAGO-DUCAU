@@ -138,9 +138,9 @@ class PlaceRepository {
   }
 
   static const String _londonImage =
-      'https://images.unsplash.com/photo-1692301417533-6fbaa2ee8ee5?auto=format&fit=crop&fm=jpg&q=85&w=1200';
+      'https://images.pexels.com/photos/20112276/pexels-photo-20112276/free-photo-of-big-ben-in-london.jpeg?auto=compress&dpr=1&h=750&w=1260';
   static const String _parisImage =
-      'https://images.unsplash.com/photo-1774084930616-fce8eba59264?auto=format&fit=crop&fm=jpg&q=85&w=1200';
+      'https://images.pexels.com/photos/441585/pexels-photo-441585.jpeg?auto=compress&dpr=1&h=750&w=1260';
 
   static const List<Map<String, dynamic>> _starterPlaces = [
     {
