@@ -85,6 +85,7 @@ class PlaceRepository {
         {
           'starterPlacesSeeded': true,
           'starterImagesV2Updated': true,
+          'starterImagesV3Updated': true,
           'updatedAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
@@ -96,7 +97,7 @@ class PlaceRepository {
 
     // Actualización única de las dos imágenes que estaban fallando.
     // Solo modifica los destinos de ejemplo, nunca destinos creados por el usuario.
-    if (profileData['starterImagesV2Updated'] != true) {
+    if (profileData['starterImagesV3Updated'] != true) {
       final starterSnapshot = await _collection
           .where('ownerId', isEqualTo: uid)
           .get();
@@ -127,7 +128,7 @@ class PlaceRepository {
       batch.set(
         profileRef,
         {
-          'starterImagesV2Updated': true,
+          'starterImagesV3Updated': true,
           'updatedAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
