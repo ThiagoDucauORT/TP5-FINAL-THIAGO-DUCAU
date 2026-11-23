@@ -291,7 +291,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Image.network(
               'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=85&w=1900&auto=format&fit=crop',
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const ColoredBox(color: _ink),
+              errorBuilder: (_, _, _) => const ColoredBox(color: _ink),
             ),
             const DecoratedBox(
               decoration: BoxDecoration(
@@ -421,7 +421,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Image.network(
                     place.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const ColoredBox(
+                    errorBuilder: (_, _, _) => const ColoredBox(
                       color: Color(0xFFE4ECEA),
                       child: Icon(Icons.landscape_outlined, size: 48, color: _mutedInk),
                     ),
@@ -644,7 +644,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context: context,
       builder: (_) => const _PlaceFormDialog(),
     );
-    if (data == null || !mounted) return;
+    if (data == null || !context.mounted) return;
 
     try {
       await ref.read(placeRepositoryProvider).addPlace(
@@ -657,13 +657,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             touristSpots: data['touristSpots'] as String,
             recommendations: data['recommendations'] as String,
           );
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Destino guardado en Firestore.')),
         );
       }
     } catch (error) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('No se pudo guardar el destino: $error')),
         );
