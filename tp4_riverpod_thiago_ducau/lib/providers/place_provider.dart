@@ -35,9 +35,6 @@ class PlaceRepository {
     return user.uid;
   }
 
-  // Los destinos de ejemplo se crean una sola vez por cuenta.
-  // El indicador se guarda en users/{uid}, por eso borrar todos los destinos
-  // manualmente no provoca que vuelvan a aparecer al abrir la web.
   Stream<List<Place>> watchPlaces() async* {
     final uid = _uid;
     await _ensureStarterPlaces(uid);
@@ -59,42 +56,91 @@ class PlaceRepository {
   Future<void> _ensureStarterPlaces(String uid) async {
     final profileRef = _db.collection('users').doc(uid);
     final profile = await profileRef.get();
+    final profileData = profile.data() ?? <String, dynamic>{};
 
-    if (profile.data()?['starterPlacesSeeded'] == true) return;
+    if (profileData['starterPlacesSeeded'] != true) {
+      final existingPlaces = await _collection
+          .where('ownerId', isEqualTo: uid)
+          .limit(1)
+          .get();
 
-    final existingPlaces = await _collection
-        .where('ownerId', isEqualTo: uid)
-        .limit(1)
-        .get();
+      final batch = _db.batch();
 
-    final batch = _db.batch();
-
-    // Si el usuario ya tenía destinos, los conservamos y no agregamos
-    // ejemplos encima de sus datos.
-    if (existingPlaces.docs.isEmpty) {
-      for (final destination in _starterPlaces) {
-        final doc = _collection.doc();
-        batch.set(doc, {
-          ...destination,
-          'ownerId': uid,
-          'isStarter': true,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+      // No mezclamos ejemplos con destinos que el usuario ya haya creado.
+      if (existingPlaces.docs.isEmpty) {
+        for (final destination in _starterPlaces) {
+          final doc = _collection.doc();
+          batch.set(doc, {
+            ...destination,
+            'ownerId': uid,
+            'isStarter': true,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
       }
+
+      batch.set(
+        profileRef,
+        {
+          'starterPlacesSeeded': true,
+          'starterImagesV2Updated': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+
+      await batch.commit();
+      return;
     }
 
-    batch.set(
-      profileRef,
-      {
-        'starterPlacesSeeded': true,
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
+    // Actualización única de las dos imágenes que estaban fallando.
+    // Solo modifica los destinos de ejemplo, nunca destinos creados por el usuario.
+    if (profileData['starterImagesV2Updated'] != true) {
+      final starterSnapshot = await _collection
+          .where('ownerId', isEqualTo: uid)
+          .get();
 
-    await batch.commit();
+      final batch = _db.batch();
+
+      for (final document in starterSnapshot.docs) {
+        final data = document.data();
+        if (data['isStarter'] != true) continue;
+
+        final name = (data['name'] as String? ?? '').toLowerCase();
+        String? correctedImage;
+
+        if (name == 'londres') {
+          correctedImage = _londonImage;
+        } else if (name == 'parís' || name == 'paris') {
+          correctedImage = _parisImage;
+        }
+
+        if (correctedImage != null && data['imageUrl'] != correctedImage) {
+          batch.update(document.reference, {
+            'imageUrl': correctedImage,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      batch.set(
+        profileRef,
+        {
+          'starterImagesV2Updated': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+
+      await batch.commit();
+    }
   }
+
+  static const String _londonImage =
+      'https://images.unsplash.com/photo-1692301417533-6fbaa2ee8ee5?auto=format&fit=crop&fm=jpg&q=85&w=1200';
+  static const String _parisImage =
+      'https://images.unsplash.com/photo-1774084930616-fce8eba59264?auto=format&fit=crop&fm=jpg&q=85&w=1200';
 
   static const List<Map<String, dynamic>> _starterPlaces = [
     {
@@ -146,8 +192,7 @@ class PlaceRepository {
       'name': 'París',
       'description':
           'Arte, diseño, historia y gastronomía se encuentran en una ciudad reconocida por sus grandes avenidas, sus museos y sus rincones junto al Sena.',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1502602898657-3e907611a509?q=80&w=1200&auto=format&fit=crop',
+      'imageUrl': _parisImage,
       'location': 'Francia',
       'rating': 4.9,
       'recommendedFoods':
@@ -176,8 +221,7 @@ class PlaceRepository {
       'name': 'Londres',
       'description':
           'Tradición y modernidad se mezclan entre palacios, mercados, museos y barrios llenos de propuestas culturales.',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1513635269975-5969336ac521?q=80&w=1200&auto=format&fit=crop',
+      'imageUrl': _londonImage,
       'location': 'Reino Unido',
       'rating': 4.7,
       'recommendedFoods':
@@ -212,6 +256,7 @@ class PlaceRepository {
       recommendations: recommendations.trim(),
       ownerId: _uid,
     );
+
     await doc.set({
       ...place.toMap(),
       'createdAt': FieldValue.serverTimestamp(),
