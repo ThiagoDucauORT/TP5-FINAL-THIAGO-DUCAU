@@ -96,7 +96,7 @@ class DetailScreen extends ConsumerWidget {
                       Image.network(
                         place.imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const ColoredBox(
+                        errorBuilder: (_, _, _) => const ColoredBox(
                           color: _detailInk,
                           child: Icon(Icons.landscape_outlined, size: 70, color: Colors.white54),
                         ),
