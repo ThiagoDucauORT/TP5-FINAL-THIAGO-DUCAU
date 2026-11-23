@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,7 +22,7 @@ class ResultsScreen extends ConsumerWidget {
         child: ListTile(
           contentPadding: const EdgeInsets.all(16),
           leading: CircleAvatar(
-            backgroundColor: Colors.indigo.withOpacity(0.1),
+            backgroundColor: Colors.indigo.withValues(alpha: 0.1),
             child: Icon(icon, color: Colors.indigo),
           ),
           title: Text(
@@ -128,9 +129,19 @@ class ResultsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () {
-              ref.read(authProvider.notifier).logout();
-              context.go('/');
+            onPressed: () async {
+              try {
+                await ref.read(authProvider).logout();
+                if (context.mounted) context.go('/');
+              } on FirebaseAuthException catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(error.message ?? 'No se pudo cerrar sesión.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             icon: const Icon(Icons.exit_to_app),
             label: const Text('Cerrar sesión'),
