@@ -1,13 +1,30 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Cada usuario puede leer y modificar únicamente su propio perfil.
+    // La aplicación guarda aquí la marca que evita volver a sembrar
+    // destinos de ejemplo después de que el usuario los elimine.
+    match /users/{userId} {
+      allow read, create, update, delete: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // Cada destino pertenece al usuario indicado en ownerId.
     match /places/{placeId} {
-      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      allow read: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+
       allow update: if request.auth != null
         && resource.data.ownerId == request.auth.uid
         && request.resource.data.ownerId == resource.data.ownerId;
-      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+
+      allow delete: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
     }
   }
 }
